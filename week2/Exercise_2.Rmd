@@ -1,5 +1,5 @@
 ---
-title: "Exercise_2_final"
+title: "Exercise 2"
 author: "Mathujah Manikkan"
 date: "5/11/2022"
 output: html_document
@@ -39,3 +39,41 @@ wildschwein_BE$timelag  <- as.integer(difftime(lead(wildschwein_BE$DatetimeUTC),
 
 wildschwein_BE
 ```
+## Now inspect your data in more detail. Try to answer the following questions:
+
+How many individuals were tracked?
+```{r}
+library(plyr)
+count(wildschwein_BE, "TierName")
+```
+Rosa, Ruth and Sabi, 3 individuals have been tracked. 
+
+
+For how long were the individual tracked? Are there gaps?
+```{r}
+summary(wildschwein_BE$DatetimeUTC)
+summary(wildschwein_BE$timelag)
+```
+They been tracked from 22.08.2014 until 27.07.2015. Over this time periode there is one gap (NAs = 1). 
+
+
+Were all individuals tracked concurrently or sequentially?
+```{r}
+ggplot(wildschwein_BE, aes(DatetimeUTC, TierID)) +
+  geom_line()
+```
+The start of tracking is different for each individual. However, there are sequences in which all three individuals were tracked simultaneously. 
+
+
+What is the temporal sampling interval between the locations?
+```{r}
+
+ggplot(wildschwein_BE, aes(DatetimeUTC, timelag, colour = TierID)) +
+  ylim(0, 20000) +
+  geom_point() +
+  geom_line()
+
+ggplot
+
+```
+
