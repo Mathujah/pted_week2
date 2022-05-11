@@ -1,0 +1,41 @@
+---
+title: "Exercise_2_final"
+author: "Mathujah Manikkan"
+date: "5/11/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Task 1: Import your data
+Load the necessary libraries
+```{r message = FALSE, warning=FALSE}
+library(readr)        # to import tabular data (e.g. csv)
+library(dplyr)        # to manipulate (tabular) data
+library(ggplot2)      # to visualize data
+library(sf)           # to handle spatial vector data
+library(terra)        # To handle raster data
+library(lubridate)    # To handle dates and times
+```
+
+Import the downloaded csv
+```{r}
+wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") # adjust path
+
+wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, remove = FALSE)
+
+```
+
+
+## Task 2: Getting an overview
+Calculate the time difference between subsequent rows as described in the demo. You can calculate the time difference using the function difftime() in combination with lead().
+
+
+```{r}
+
+wildschwein_BE$timelag  <- as.integer(difftime(lead(wildschwein_BE$DatetimeUTC), wildschwein_BE$DatetimeUTC, units("secs")))
+
+wildschwein_BE
+```
