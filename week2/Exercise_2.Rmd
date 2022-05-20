@@ -85,6 +85,8 @@ wildschwein_BE$steplenght <- dist
 wildschwein_BE$speed <- dist/wildschwein_BE$timelag
 ```
 
+<br><br>
+
 # Task 4: Cross-scale movement analysis
 
 Import file
@@ -96,13 +98,7 @@ caro <- st_as_sf(caro, coords = c("E", "N"), remove = FALSE)
 ```
 
 Reduce the granularity of our sampling interval by selecting every 3rd, 6th and 9th position
-
-
-<br><br>
-
-
 ```{r}
-
 
 caro_3<- caro %>% dplyr::slice(seq(1, nrow(.),3))
 caro_6<- caro %>% dplyr::slice(seq(1, nrow(.),6))
@@ -115,22 +111,105 @@ nrow(caro_9)
 
 ```
 
-## Calculate Timelag / Stephlength / Speed
+Calculate Timelag / Stephlength / Speed
 ```{r}
-caro$timelag  <- as.integer(difftime(lead(caro$DatetimeUTC), caro$DatetimeUTC, units = c("secs")))
+caro <- caro %>%
+  group_by(TierID) %>%
+  mutate(timelag = as.integer(difftime(lead(DatetimeUTC),DatetimeUTC, units="secs"))) %>%
+  mutate(steplength = sqrt(((E-lead(E,1))^2) + ((N-lead(N,1))^2))) %>%
+  mutate(speed = steplength/timelag)
 
+caro_3 <- caro_3 %>%
+  group_by(TierID) %>%
+  mutate(timelag = as.integer(difftime(lead(DatetimeUTC),DatetimeUTC, units="secs"))) %>%
+  mutate(steplength = sqrt(((E-lead(E,1))^2) + ((N-lead(N,1))^2))) %>%
+  mutate(speed = steplength/timelag)
 
-n=201
-E1=caro$E[1:(n-1)]
-E2=caro$E[2:n]
-N2=caro$N[2:n]
-N1=caro$N[1:(n-1)]
-dist=sqrt((E1-E2)^2+(N1-N2)^2)
+caro_6 <- caro_6 %>%
+  group_by(TierID) %>%
+  mutate(timelag = as.integer(difftime(lead(DatetimeUTC),DatetimeUTC, units="secs"))) %>%
+  mutate(steplength = sqrt(((E-lead(E,1))^2) + ((N-lead(N,1))^2))) %>%
+  mutate(speed = steplength/timelag)
 
-caro$steplenght <- dist
-
-caro$speed <- dist/caro$timelag
-
-caro
+caro_9 <- caro_9 %>%
+  group_by(TierID) %>%
+  mutate(timelag = as.integer(difftime(lead(DatetimeUTC),DatetimeUTC, units="secs"))) %>%
+  mutate(steplength = sqrt(((E-lead(E,1))^2) + ((N-lead(N,1))^2))) %>%
+  mutate(speed = steplength/timelag)
 
 ```
+
+Visualize the trajectories in a map 
+```{r warning=FALSE}
+ggplot() + 
+  geom_path(data=caro, aes(x = E, y = N, colour = "1 minute"))+
+  geom_path(data=caro_3, aes(x = E,y = N, color = "3 minutes")) +
+  geom_point(data=caro, aes(x = E, y = N, colour = "1 minute")) + 
+  geom_point(data=caro_3, aes(x = E, y = N, colour = "3 minutes")) +
+  theme(legend.position = "right") +
+  scale_color_manual(name='Trajectory',
+                     breaks=c('1 minute', '3 minutes'),
+                     values=c('1 minute'='pink', '3 minutes'='lightblue'))
+
+ggplot() + 
+  geom_path(data=caro, aes(x = E, y = N, colour = "1 minute"))+
+  geom_path(data=caro_6, aes(x = E,y = N, color = "6 minutes")) +
+  geom_point(data=caro, aes(x = E, y = N, colour = "1 minute")) + 
+  geom_point(data=caro_6, aes(x = E, y = N, colour = "6 minutes")) +
+  theme(legend.position = "right") +
+  scale_color_manual(name='Trajectory',
+                     breaks=c('1 minute', '6 minutes'),
+                     values=c('1 minute'='pink', '6 minutes'='lightblue'))
+
+
+ggplot() + 
+  geom_path(data=caro, aes(x = E, y = N, colour = "1 minute"))+
+  geom_path(data=caro_9, aes(x = E,y = N, color = "9 minutes")) +
+  geom_point(data=caro, aes(x = E, y = N, colour = "1 minute")) + 
+  geom_point(data=caro_9, aes(x = E, y = N, colour = "9 minutes")) +
+  theme(legend.position = "right") +
+  scale_color_manual(name='Trajectory',
+                     breaks=c('1 minute', '9 minutes'),
+                     values=c('1 minute'='pink', '9 minutes'='lightblue'))
+
+
+ggplot() + 
+  geom_line(data=caro, aes(x = DatetimeUTC, y = speed, color= "1 minute")) +
+  geom_line(data=caro_3, aes(x = DatetimeUTC, y = speed, color= "3 minutes")) +
+  geom_line(data=caro_6, aes(x = DatetimeUTC, y = speed, color= "6 minutes")) +
+  geom_line(data=caro_9, aes(x = DatetimeUTC, y = speed, color= "9 minutes")) +
+  labs(x="Zeitpunkt",y="Speed (m/s)")
+  
+
+```
+# Task 5: Deriving movement parameters II: Rolling window functions
+```{r}
+library(zoo)
+
+example <- rnorm(10)
+rollmean(example,k = 3,fill = NA,align = "left")
+rollmean(example,k = 4,fill = NA,align = "left")
+
+caro$k3<- rollmean(caro$speed,k = 3,fill = NA,align = "left")
+caro$k6<- rollmean(caro$speed,k = 6,fill = NA,align = "left")
+caro$k9<- rollmean(caro$speed,k = 9,fill = NA,align = "left")
+
+ggplot() + 
+  geom_path(data=caro, aes(x = DatetimeUTC, y = k3, color= "k3"))+
+  geom_path(data=caro, aes(x = DatetimeUTC, y = k6, color= "k6"))+
+  geom_path(data=caro, aes(x = DatetimeUTC, y = k9, color= "k9"))+
+  theme_classic() +
+  labs(x="Zeitpunkt",y="rollmean")
+
+
+```
+
+
+
+
+
+
+
+
+
+
