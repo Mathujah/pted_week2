@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+
 ## Task 1: Import your data
 Load the necessary libraries
 ```{r message = FALSE, warning=FALSE}
@@ -21,28 +23,23 @@ library(lubridate)    # To handle dates and times
 ```
 
 Import the downloaded csv
-```{r}
+```{r, echo=TRUE}
 wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") # adjust path
-
 wildschwein_BE <- st_as_sf(wildschwein_BE, coords = c("E", "N"), crs = 2056, remove = FALSE)
 
 ```
 
-
 ## Task 2: Getting an overview
 Calculate the time difference between subsequent rows as described in the demo. You can calculate the time difference using the function difftime() in combination with lead().
-
-
 ```{r}
-
 wildschwein_BE$timelag  <- as.integer(difftime(lead(wildschwein_BE$DatetimeUTC), wildschwein_BE$DatetimeUTC, units("secs")))
 
 wildschwein_BE
 ```
-## Now inspect your data in more detail. Try to answer the following questions:
+### Now inspect your data in more detail. Try to answer the following questions:
 
 How many individuals were tracked?
-```{r}
+```{r, message=FALSE}
 library(plyr)
 count(wildschwein_BE, "TierName")
 ```
@@ -72,8 +69,68 @@ ggplot(wildschwein_BE, aes(DatetimeUTC, timelag, colour = TierID)) +
   ylim(0, 20000) +
   geom_point() +
   geom_line()
+```
+# Task 3: Deriving movement parameters I: Speed
 
-ggplot
+```{r}
+n=dim(wildschwein_BE)[1] #or
+n=51247
+
+E1=wildschwein_BE$E[1:(n-1)]
+E2=wildschwein_BE$E[2:n]
+N1=wildschwein_BE$N[1:(n-1)]
+N2=wildschwein_BE$N[2:n]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+wildschwein_BE$steplenght <- dist
+wildschwein_BE$speed <- dist/wildschwein_BE$timelag
+```
+
+# Task 4: Cross-scale movement analysis
+
+Import file
+
+```{r}
+caro <- read_delim("caro60.csv",",") 
+caro <- st_as_sf(caro, coords = c("E", "N"), remove = FALSE)
 
 ```
 
+Reduce the granularity of our sampling interval by selecting every 3rd, 6th and 9th position
+
+
+<br><br>
+
+
+```{r}
+
+
+caro_3<- caro %>% dplyr::slice(seq(1, nrow(.),3))
+caro_6<- caro %>% dplyr::slice(seq(1, nrow(.),6))
+caro_9<- caro %>% dplyr::slice(seq(1, nrow(.),9))
+
+nrow(caro)
+nrow(caro_3)
+nrow(caro_6)
+nrow(caro_9)
+
+```
+
+## Calculate Timelag / Stephlength / Speed
+```{r}
+caro$timelag  <- as.integer(difftime(lead(caro$DatetimeUTC), caro$DatetimeUTC, units = c("secs")))
+
+
+n=201
+E1=caro$E[1:(n-1)]
+E2=caro$E[2:n]
+N2=caro$N[2:n]
+N1=caro$N[1:(n-1)]
+dist=sqrt((E1-E2)^2+(N1-N2)^2)
+
+caro$steplenght <- dist
+
+caro$speed <- dist/caro$timelag
+
+caro
+
+```
